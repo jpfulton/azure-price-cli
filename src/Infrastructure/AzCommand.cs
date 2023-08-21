@@ -100,7 +100,7 @@ public static class AzCommand
         var startInfo = new ProcessStartInfo
         {
             FileName = "az",
-            Arguments = $"resource show --ids {resourceId}",
+            Arguments = $"resource show --ids \"{resourceId}\"",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,

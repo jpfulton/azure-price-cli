@@ -1,6 +1,7 @@
 
 
 using AzurePriceCli.Infrastructure;
+using AzurePriceCli.PriceApi;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -8,6 +9,13 @@ namespace AzurePriceCli.Commands.PriceByResource;
 
 public class PriceByResourceCommand : AsyncCommand<PriceByResourceSettings>
 {
+
+    private readonly IPriceRetriever _priceRetriever;
+
+    public PriceByResourceCommand(IPriceRetriever priceRetriever)
+    {
+        _priceRetriever = priceRetriever;
+    }
 
     public override ValidationResult Validate(CommandContext context, PriceByResourceSettings settings)
     {
@@ -68,6 +76,8 @@ public class PriceByResourceCommand : AsyncCommand<PriceByResourceSettings>
             var resource = await AzCommand.GetAzureResourceByIdAsync(id);
             resources.Add(resource);
         }
+
+        var result = await _priceRetriever.GetPriceItemAsync("test", "test", "northcentralus");
 
         return 0;
     }

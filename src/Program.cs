@@ -12,6 +12,8 @@ services.AddHttpClient("PriceApi", client =>
   client.DefaultRequestHeaders.Add("Accept", "application/json");
 }).AddPolicyHandler(PollyPolicyExtensions.GetRetryAfterPolicy());
 
+services.AddTransient<IPriceRetriever, AzurePriceRetriever>();
+
 var registrar = new TypeRegistrar(services);
 
 var app = new CommandApp(registrar);
