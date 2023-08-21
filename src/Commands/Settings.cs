@@ -18,3 +18,19 @@ public class Settings : CommandSettings
     [Description("The subscription id to use. Will try to fetch the active id if not specified.")]
     public Guid Subscription { get; set; }
 }
+
+public enum MetricType
+{
+    ActualCost,
+    AmortizedCost
+}
+
+public enum TimeframeType
+{
+    BillingMonthToDate,
+    Custom,	
+    MonthToDate,	
+    TheLastBillingMonth,	
+    TheLastMonth,
+    WeekToDate,
+}
