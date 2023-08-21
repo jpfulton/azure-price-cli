@@ -1,4 +1,5 @@
-﻿using AzurePriceCli.Infrastructure;
+﻿using AzurePriceCli.Commands.PriceByResource;
+using AzurePriceCli.Infrastructure;
 using AzurePriceCli.PriceApi;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
@@ -18,6 +19,9 @@ var app = new CommandApp(registrar);
 app.Configure(config =>
 {
   config.SetApplicationName("azure-price");
+
+  config.AddCommand<PriceByResourceCommand>("priceByResource")
+    .WithDescription("Show price by resource within a resource group.");
 
   config.ValidateExamples();
 });
