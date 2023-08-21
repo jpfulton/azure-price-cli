@@ -6,7 +6,7 @@ namespace AzurePriceCli.Infrastructure;
 
 public static class AzCommand
 {
-    public static string GetDefaultAzureSubscriptionId()
+    public static async Task<string> GetDefaultAzureSubscriptionIdAsync()
     {
         var startInfo = new ProcessStartInfo
         {
@@ -21,12 +21,12 @@ public static class AzCommand
         using (var process = new Process { StartInfo = startInfo })
         {
             process.Start();
-            string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
+            string output = await process.StandardOutput.ReadToEndAsync();
+            await process.WaitForExitAsync();
 
             if (process.ExitCode != 0)
             {
-                string error = process.StandardError.ReadToEnd();
+                string error = await process.StandardError.ReadToEndAsync();
                 throw new Exception($"Error executing 'az account show': {error}");
             }
 
@@ -46,7 +46,7 @@ public static class AzCommand
         }
     }
 
-    public static string[] GetAzureResourceIds(string resourceGroup)
+    public static async Task<string[]> GetAzureResourceIdsAsync(string resourceGroup)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -61,12 +61,12 @@ public static class AzCommand
         using (var process = new Process { StartInfo = startInfo })
         {
             process.Start();
-            string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
+            string output = await process.StandardOutput.ReadToEndAsync();
+            await process.WaitForExitAsync();
 
             if (process.ExitCode != 0)
             {
-                string error = process.StandardError.ReadToEnd();
+                string error = await process.StandardError.ReadToEndAsync();
                 throw new Exception($"Error executing 'az resource list': {error}");
             }
 
@@ -95,7 +95,7 @@ public static class AzCommand
         }
     }
 
-    public static Resource GetAzureResourceById(string resourceId)
+    public static async Task<Resource> GetAzureResourceByIdAsync(string resourceId)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -110,12 +110,12 @@ public static class AzCommand
         using (var process = new Process { StartInfo = startInfo })
         {
             process.Start();
-            string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
+            string output = await process.StandardOutput.ReadToEndAsync();
+            await process.WaitForExitAsync();
 
             if (process.ExitCode != 0)
             {
-                string error = process.StandardError.ReadToEnd();
+                string error = await process.StandardError.ReadToEndAsync();
                 throw new Exception($"Error executing 'az resource show': {error}");
             }
 

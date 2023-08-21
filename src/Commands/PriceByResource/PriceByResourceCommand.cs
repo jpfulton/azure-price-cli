@@ -37,7 +37,7 @@ public class PriceByResourceCommand : AsyncCommand<PriceByResourceSettings>
                     AnsiConsole.WriteLine(
                         "No subscription ID specified. Trying to retrieve the default subscription ID from Azure CLI.");
 
-                subscriptionId = Guid.Parse(AzCommand.GetDefaultAzureSubscriptionId());
+                subscriptionId = Guid.Parse(await AzCommand.GetDefaultAzureSubscriptionIdAsync());
 
                 if (settings.Debug)
                     AnsiConsole.WriteLine($"Default subscription ID retrieved from az cli: {subscriptionId}");
@@ -52,7 +52,7 @@ public class PriceByResourceCommand : AsyncCommand<PriceByResourceSettings>
             }
         }
 
-        string[] resourceIds = AzCommand.GetAzureResourceIds(settings.ResourceGroup);
+        string[] resourceIds = await AzCommand.GetAzureResourceIdsAsync(settings.ResourceGroup);
         if (settings.Debug)
         {
             AnsiConsole.WriteLine("Resource IDs:");
@@ -65,7 +65,7 @@ public class PriceByResourceCommand : AsyncCommand<PriceByResourceSettings>
         var resources = new List<Resource>();
         foreach (var id in resourceIds)
         {
-            var resource = AzCommand.GetAzureResourceById(id);
+            var resource = await AzCommand.GetAzureResourceByIdAsync(id);
             resources.Add(resource);
         }
 
