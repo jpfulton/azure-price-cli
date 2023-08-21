@@ -1,2 +1,25 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
+﻿using AzurePriceCli.Infrastructure;
+using AzurePriceCli.PriceApi;
+using Microsoft.Extensions.DependencyInjection;
+using Spectre.Console.Cli;
+
+var services = new ServiceCollection();
+
+services.AddHttpClient("PriceApi", client =>
+{
+  client.BaseAddress = new Uri("https://prices.azure.com/api/retail/prices");
+  client.DefaultRequestHeaders.Add("Accept", "application/json");
+}).AddPolicyHandler(PollyPolicyExtensions.GetRetryAfterPolicy());
+
+var registrar = new TypeRegistrar(services);
+
+var app = new CommandApp(registrar);
+
+app.Configure(config =>
+{
+  config.SetApplicationName("azure-price");
+
+  config.ValidateExamples();
+});
+
+return await app.RunAsync(args);
