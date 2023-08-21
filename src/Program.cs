@@ -8,7 +8,7 @@ var services = new ServiceCollection();
 
 services.AddHttpClient("PriceApi", client =>
 {
-  client.BaseAddress = new Uri("https://prices.azure.com/api/retail/prices");
+  client.BaseAddress = new Uri("https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview");
   client.DefaultRequestHeaders.Add("Accept", "application/json");
 }).AddPolicyHandler(PollyPolicyExtensions.GetRetryAfterPolicy());
 

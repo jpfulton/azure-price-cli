@@ -62,6 +62,13 @@ public class PriceByResourceCommand : AsyncCommand<PriceByResourceSettings>
             }
         }
 
+        var resources = new List<Resource>();
+        foreach (var id in resourceIds)
+        {
+            var resource = AzCommand.GetAzureResourceById(id);
+            resources.Add(resource);
+        }
+
         return 0;
     }
 }

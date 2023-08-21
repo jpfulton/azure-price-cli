@@ -94,4 +94,99 @@ public static class AzCommand
             return idList.ToArray();
         }
     }
+
+    public static Resource GetAzureResourceById(string resourceId)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "az",
+            Arguments = $"resource show --ids {resourceId}",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using (var process = new Process { StartInfo = startInfo })
+        {
+            process.Start();
+            string output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+
+            if (process.ExitCode != 0)
+            {
+                string error = process.StandardError.ReadToEnd();
+                throw new Exception($"Error executing 'az resource show': {error}");
+            }
+
+            var resource = new Resource();
+
+            using (var jsonDocument = JsonDocument.Parse(output))
+            {
+                JsonElement root = jsonDocument.RootElement;
+                
+                if (root.TryGetProperty("id", out JsonElement idElement))
+                {
+                    string id = idElement.GetString();
+                    resource.Id = id;
+                }
+                else
+                {
+                    throw new Exception("Unable to find the 'id' property in the JSON output.");
+                }
+
+                if (root.TryGetProperty("type", out JsonElement typeElement))
+                {
+                    string value = typeElement.GetString();
+                    resource.Type = value;
+                }
+                else
+                {
+                    throw new Exception("Unable to find the 'type' property in the JSON output.");
+                }
+
+                if (root.TryGetProperty("location", out JsonElement locationElement))
+                {
+                    string value = locationElement.GetString();
+                    resource.Location = value;
+                }
+                else
+                {
+                    throw new Exception("Unable to find the 'location' property in the JSON output.");
+                }
+
+                if (root.TryGetProperty("name", out JsonElement nameElement))
+                {
+                    string value = nameElement.GetString();
+                    resource.Name = value;
+                }
+                else
+                {
+                    throw new Exception("Unable to find the 'name' property in the JSON output.");
+                }
+
+                if (root.TryGetProperty("sku", out JsonElement skuElement))
+                {
+                    if (skuElement.ValueKind != JsonValueKind.Null)
+                    {
+                        if (skuElement.TryGetProperty("name", out JsonElement skuNameElement))
+                        {
+                            string value = skuNameElement.GetString();
+                            resource.SkuName = value;
+                        }
+                        else
+                        {
+                            throw new Exception("Unable to find the 'sku.name' element in the JSON output.");
+                        }
+                    }
+                }
+                else
+                {
+                    throw new Exception("Unable to find the 'sku' element in the JSON output.");
+                }
+            }
+
+            return resource;
+        }
+    }
 }
