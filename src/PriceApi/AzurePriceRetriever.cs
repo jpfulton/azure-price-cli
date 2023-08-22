@@ -32,9 +32,12 @@ public class AzurePriceRetriever : IPriceRetriever
 
         var sb = new StringBuilder();
         sb.Append("$filter=");
-        sb.Append($"armRegionName eq '{location}'");
-        sb.Append($"and serviceName eq '{serviceName}'");
+        sb.Append($"serviceName eq '{serviceName}'");
         sb.Append($"and meterName eq '{meterName}'");
+        if (!location.Equals("Unknown"))
+        {
+            sb.Append($"and armRegionName eq '{location}'");
+        }
 
         var uri = new Uri($"?{sb}", UriKind.Relative);
         var response = await _client.GetAsync(uri);

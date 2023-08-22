@@ -89,6 +89,7 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
 
         string[] resourceIds = new string[0];
         var resourceCosts = new Dictionary<string, ResourceAndCosts>();
+        var retailPrices = new List<PriceItem>();
 
         var timer = new Stopwatch();
 
@@ -177,6 +178,40 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
         timer.Stop();
         AnsiConsole.WriteLine($"Resource forecasted cost fetched in {timer.Elapsed.TotalSeconds}s.");
 
+        timer.Restart();
+        await AnsiConsole.Status()
+            .StartAsync("Fetching retail price data for resources...", async ctx =>
+            {
+                var allMeters = new List<Meter>();
+                foreach (var resource in resourceCosts.Values)
+                {
+                    allMeters.AddRange(resource.Resource.Meters);
+                }
+
+                var distinctMeters = allMeters.GroupBy(x => new
+                {
+                    x.ArmLocation,
+                    x.ServiceName,
+                    x.ServiceTier,
+                    x.MeterName
+                })
+                .Select(x => x.First());
+
+                foreach (var meter in distinctMeters)
+                {
+                    var priceItems = await _priceRetriever.GetPriceItemAsync(
+                        false,
+                        meter.ArmLocation,
+                        meter.ServiceName,
+                        meter.MeterName
+                    );
+
+                    retailPrices.AddRange(priceItems);
+                }
+            });
+        timer.Stop();
+        AnsiConsole.WriteLine($"Resource retail price data fetched in {timer.Elapsed.TotalSeconds}s.");
+
         var table = new Table()
             .RoundedBorder()
             .Expand()
@@ -185,6 +220,7 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
             .AddColumn("Service")
             .AddColumn("Tier")
             .AddColumn("Meter")
+            .AddColumn("Retail")
             .AddColumn(new TableColumn("Current").RightAligned())
             .AddColumn(new TableColumn("Forecast").RightAligned());
 
@@ -195,6 +231,7 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
             table.AddRow(
                 new Markup($"[bold]{item.Resource.Name}[/]"),
                 new Markup($"[bold]{item.Resource.ResourceType}[/]"),
+                new Markup("---".EscapeMarkup()),
                 new Markup("---".EscapeMarkup()),
                 new Markup("---".EscapeMarkup()),
                 new Markup("---".EscapeMarkup()),
@@ -209,7 +246,8 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                     new Markup(string.Empty.EscapeMarkup()),
                     new Markup(meter.ServiceName.EscapeMarkup()),
                     new Markup(meter.ServiceTier.EscapeMarkup()),
-                    new Markup(meter.MeterName.EscapeMarkup()),
+                    GetMeterTree(meter, retailPrices),
+                    new Markup($"[italic dim]{GetRetailPrice(retailPrices, meter)}[/]"),
                     new Markup($"[italic dim]{FormatDouble(meter.Cost)}[/]"),
                     new Markup(string.Empty.EscapeMarkup())
                 );
@@ -226,11 +264,13 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
             new Markup("---".EscapeMarkup()),
             new Markup("---".EscapeMarkup()),
             new Markup("---".EscapeMarkup()),
+            new Markup("---".EscapeMarkup()),
             new Markup("---".EscapeMarkup())
         );
 
         table.AddRow(
             new Markup("Total".EscapeMarkup()),
+            new Markup(string.Empty.EscapeMarkup()),
             new Markup(string.Empty.EscapeMarkup()),
             new Markup(string.Empty.EscapeMarkup()),
             new Markup(string.Empty.EscapeMarkup()),
@@ -251,5 +291,45 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
     private static string FormatDouble(double value)
     {
         return string.Format("{0:0.00}", value);
+    }
+
+    private static string GetRetailPrice(
+        IEnumerable<PriceItem> priceItems,
+        Meter meter
+    )
+    {
+        var item = GetPriceItem(priceItems, meter);
+        var value = item == null ? 0.0 : item.RetailPrice;
+
+        return FormatDouble(value);
+    }
+
+    private static PriceItem? GetPriceItem(
+        IEnumerable<PriceItem> priceItems,
+        Meter meter
+    )
+    {
+        var value = priceItems.Where(x =>
+            (meter.ArmLocation.Equals("Unknown") || x.ArmRegionName.Equals(meter.ArmLocation)) &&
+            x.ServiceName.Equals(meter.ServiceName) &&
+            x.MeterName.Equals(meter.MeterName)
+        )
+        .FirstOrDefault();
+
+        return value;
+    }
+
+    private static Tree GetMeterTree(Meter meter, IEnumerable<PriceItem> priceItems)
+    {
+        var item = GetPriceItem(priceItems, meter);
+        var tree = new Tree(meter.MeterName);
+
+        if (item != null)
+        {
+            tree.AddNode(new Markup($"[dim]Unit[/]: [italic dim]{item.UnitOfMeasure}[/]"));
+            tree.AddNode(new Markup($"[dim]Price[/]: [italic dim]{FormatDouble(item.UnitPrice)}[/]"));
+        }
+
+        return tree;
     }
 }
