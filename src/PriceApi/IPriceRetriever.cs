@@ -3,5 +3,10 @@ namespace AzurePriceCli.PriceApi;
 
 public interface IPriceRetriever
 {
-  Task<PriceItem> GetPriceItemAsync(string type, string skuName, string location);
+  public Task<IEnumerable<PriceItem>> GetPriceItemAsync(
+      bool includeDebugOutput,
+      string location,
+      string serviceName,
+      string meterName
+  );
 }

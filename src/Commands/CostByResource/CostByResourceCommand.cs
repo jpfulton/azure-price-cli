@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using AzurePriceCli.CostApi;
 using AzurePriceCli.Infrastructure;
+using AzurePriceCli.PriceApi;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Json;
@@ -31,10 +32,15 @@ public class ResourceAndCosts
 public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
 {
     private readonly ICostRetriever _costRetriever;
+    private readonly IPriceRetriever _priceRetriever;
 
-    public CostByResourceCommand(ICostRetriever costRetriever)
+    public CostByResourceCommand(
+        ICostRetriever costRetriever,
+        IPriceRetriever priceRetriever
+    )
     {
-      _costRetriever = costRetriever;
+        _costRetriever = costRetriever;
+        _priceRetriever = priceRetriever;
     }
 
     public override ValidationResult Validate(CommandContext context, CostByResourceSettings settings)

@@ -77,7 +77,7 @@ public class PriceByResourceCommand : AsyncCommand<PriceByResourceSettings>
             resources.Add(resource);
         }
 
-        var result = await _priceRetriever.GetPriceItemAsync("test", "test", "northcentralus");
+        var result = await _priceRetriever.GetPriceItemAsync(true, "northcentralus", "Azure App Service", "test");
 
         return 0;
     }

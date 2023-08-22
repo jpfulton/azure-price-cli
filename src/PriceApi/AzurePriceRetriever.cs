@@ -17,7 +17,12 @@ public class AzurePriceRetriever : IPriceRetriever
       _client = httpClientFactory.CreateClient("PriceApi");
     }
 
-    public async Task<PriceItem> GetPriceItemAsync(string type, string skuName, string location)
+    public async Task<IEnumerable<PriceItem>> GetPriceItemAsync(
+        bool includeDebugOutput,
+        string location, 
+        string serviceName,
+        string meterName
+    )
     {
         var options = new JsonSerializerOptions
         {
@@ -28,10 +33,8 @@ public class AzurePriceRetriever : IPriceRetriever
         var sb = new StringBuilder();
         sb.Append("$filter=");
         sb.Append($"armRegionName eq '{location}'");
-        sb.Append("and contains(serviceFamily, 'Network')");
-        sb.Append("and contains(serviceName, 'dnszones')");
-
-        var filter = HttpUtility.UrlEncode(sb.ToString());
+        sb.Append($"and serviceName eq '{serviceName}'");
+        sb.Append($"and meterName eq '{meterName}'");
 
         var uri = new Uri($"?{sb}", UriKind.Relative);
         var response = await _client.GetAsync(uri);
@@ -40,9 +43,13 @@ public class AzurePriceRetriever : IPriceRetriever
 
         var parsedResponse = await response.Content.ReadFromJsonAsync<PriceApiResponse>();
 
-        var formattedOutput = JsonSerializer.Serialize<PriceApiResponse>(parsedResponse, new JsonSerializerOptions { WriteIndented = true });
-        AnsiConsole.WriteLine(formattedOutput);
+        if (includeDebugOutput)
+        {
+            var formattedOutput = JsonSerializer.Serialize<PriceApiResponse>(parsedResponse, new JsonSerializerOptions { WriteIndented = true });
+            AnsiConsole.WriteLine(formattedOutput);
+            AnsiConsole.WriteLine();
+        }
 
-        return null;
+        return parsedResponse.Items;
     }
 }
