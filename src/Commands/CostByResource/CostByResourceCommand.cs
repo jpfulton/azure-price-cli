@@ -77,10 +77,15 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
         }
 
         var resourceIds = await AzCommand.GetAzureResourceIdsAsync(settings.ResourceGroup);
-        var resourceCosts = new List<Tuple<CostResourceItem, CostItem>>();
+        var resourceCosts = new List<Tuple<double, double>>();
+
+        string resourceName = string.Empty;
+        string resourceType = string.Empty;
+        string resourceService = string.Empty;
+        string resourceTier = string.Empty;
 
         await AnsiConsole.Status()
-            .StartAsync("Fetching cost data for resources...", async ctx =>
+            .StartAsync("Fetching data for resources...", async ctx =>
             {
                 foreach (var resourceId in resourceIds)
                 {
@@ -90,7 +95,7 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                         AnsiConsole.WriteLine($"Getting cost data for {resourceId}");
                     }
 
-                    var resourceCost = await _costRetriever.RetrieveCostForResourceAsync(
+                    var resourceCostItems = await _costRetriever.RetrieveCostForResourceAsync(
                         settings.Debug,
                         subscriptionId,
                         resourceId,
@@ -100,6 +105,15 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                         settings.From,
                         settings.To
                     );
+
+                    // pull display values from first item
+                    resourceName = resourceCostItems.First().GetResourceName();
+                    resourceType = resourceCostItems.First().ResourceType;
+                    resourceService = resourceCostItems.First().ServiceName;
+                    resourceTier = resourceCostItems.First().ServiceTier;
+
+                    // sum cost items to account for multiple meters
+                    var resourceCost = resourceCostItems.Sum(x => x.Cost);
 
                     var forecastCost = await _costRetriever.RetrieveForecastedCostsAsync(
                         settings.Debug,
@@ -111,7 +125,7 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                         settings.To
                     );
 
-                    resourceCosts.Add(new Tuple<CostResourceItem, CostItem>(resourceCost, forecastCost));
+                    resourceCosts.Add(new Tuple<double, double>(resourceCost, forecastCost));
 
                     if (settings.Debug)
                     {
@@ -130,24 +144,24 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
             .AddColumn("Type")
             .AddColumn("Service")
             .AddColumn("Tier")
-            .AddColumn("Cost USD")
-            .AddColumn("Forecast USD");
+            .AddColumn("Current")
+            .AddColumn("Forecast");
 
         var totalCost = 0.0;
         var forecastCost = 0.0;
         foreach (var cost in resourceCosts)
         {
             table.AddRow(
-                new Markup(cost.Item1.ResourceId.Split("/").Last().EscapeMarkup()),
-                new Markup(cost.Item1.ResourceType.EscapeMarkup()),
-                new Markup(cost.Item1.ServiceName.EscapeMarkup()),
-                new Markup(cost.Item1.ServiceTier.EscapeMarkup()),
-                new Markup(Math.Round(cost.Item1.CostUSD, 2).ToString().EscapeMarkup()),
-                new Markup(Math.Round(cost.Item2.CostUsd, 2).ToString().EscapeMarkup())
+                new Markup(resourceName.EscapeMarkup()),
+                new Markup(resourceType.EscapeMarkup()),
+                new Markup(resourceService.EscapeMarkup()),
+                new Markup(resourceTier.EscapeMarkup()),
+                new Markup(FormatDouble(cost.Item1).EscapeMarkup()),
+                new Markup(FormatDouble(cost.Item1 + cost.Item2).EscapeMarkup())
             );
 
-            totalCost += cost.Item1.CostUSD;
-            forecastCost += cost.Item2.CostUsd;
+            totalCost += cost.Item1;
+            forecastCost += cost.Item2;
         }
 
         table.AddRow(
@@ -164,15 +178,21 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
             new Markup(string.Empty.EscapeMarkup()),
             new Markup(string.Empty.EscapeMarkup()),
             new Markup(string.Empty.EscapeMarkup()),
-            new Markup(Math.Round(totalCost, 2).ToString().EscapeMarkup()),
-            new Markup(Math.Round(forecastCost, 2).ToString().EscapeMarkup())
+            new Markup(FormatDouble(totalCost).EscapeMarkup()),
+            new Markup(FormatDouble(totalCost + forecastCost).EscapeMarkup())
         );
 
         AnsiConsole.WriteLine();
+        AnsiConsole.WriteLine("Current Billing Period Cost and Forecast by Resource");
         AnsiConsole.WriteLine($"Subscription: {settings.Subscription}");
         AnsiConsole.WriteLine($"Resource group: {settings.ResourceGroup}");
         AnsiConsole.Write(table);
 
         return 0;
+    }
+
+    private static string FormatDouble(double value)
+    {
+        return string.Format("{0:0.00}", value);
     }
 }

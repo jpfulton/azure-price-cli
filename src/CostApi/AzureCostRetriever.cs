@@ -143,7 +143,7 @@ public class AzureCostRetriever : ICostRetriever
         return response;
     }
 
-    public async Task<CostResourceItem> RetrieveCostForResourceAsync(
+    public async Task<IEnumerable<CostResourceItem>> RetrieveCostForResourceAsync(
         bool includeDebugOutput,
         Guid subscriptionId,
         string resourceId, 
@@ -169,7 +169,7 @@ public class AzureCostRetriever : ICostRetriever
         if (costItems.Count() == 0)
         {
             // resource has no cost associated
-            return new CostResourceItem(
+            var item = new CostResourceItem(
                 0.0,
                 0.0,
                 resourceId,
@@ -184,10 +184,12 @@ public class AzureCostRetriever : ICostRetriever
                 new Dictionary<string, string>(),
                 ""
             );
+
+            return new List<CostResourceItem>() { item };
         }
         else
         {
-            return costItems.ToArray()[0];
+            return costItems;
         }
     }
 
@@ -400,7 +402,7 @@ public class AzureCostRetriever : ICostRetriever
         return items;
     }
 
-    public async Task<CostItem> RetrieveForecastedCostsAsync(
+    public async Task<double> RetrieveForecastedCostsAsync(
         bool includeDebugOutput, 
         Guid subscriptionId,
         string resourceId, 
@@ -424,16 +426,12 @@ public class AzureCostRetriever : ICostRetriever
         if (costItems.Count() == 0)
         {
             // resource has no cost associated
-            return new CostItem(
-                DateOnly.MinValue,
-                0.0,
-                0.0,
-                "USD"
-            );
+            return 0.0;
         }
         else
         {
-            return costItems.ToArray()[0];
+            var totalCost = costItems.Sum(x => x.Cost);
+            return totalCost;
         }
     }
 

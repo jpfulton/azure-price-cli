@@ -13,9 +13,8 @@
       "program": "${workspaceFolder}/src/bin/Debug/net7.0/azure-price-cli.dll",
       "args": [
         "costByResource",
-        "--debug",
         "--resource-group",
-        "personal-site"
+        "personal-dns"
       ],
       "cwd": "${workspaceFolder}/src",
       // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
