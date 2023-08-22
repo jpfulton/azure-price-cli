@@ -1,5 +1,6 @@
 
 
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -142,7 +143,7 @@ public class AzureCostRetriever : ICostRetriever
         return response;
     }
 
-    public async Task<CostResourceItem> RetrieveCostForResource(
+    public async Task<CostResourceItem> RetrieveCostForResourceAsync(
         bool includeDebugOutput,
         Guid subscriptionId,
         string resourceId, 
@@ -154,7 +155,7 @@ public class AzureCostRetriever : ICostRetriever
     )
     {
         string[] filter = new string[] {$"ResourceId={resourceId}"};
-        var costItems = await RetrieveCostForResources(
+        var costItems = await RetrieveCostForResourcesAsync(
             includeDebugOutput,
             subscriptionId,
             filter,
@@ -190,7 +191,7 @@ public class AzureCostRetriever : ICostRetriever
         }
     }
 
-    public async Task<IEnumerable<CostResourceItem>> RetrieveCostForResources(
+    private async Task<IEnumerable<CostResourceItem>> RetrieveCostForResourcesAsync(
         bool includeDebugOutput,
         Guid subscriptionId, 
         string[] filter, 
@@ -396,6 +397,124 @@ public class AzureCostRetriever : ICostRetriever
             
             return aggregatedItems;
         }
+        return items;
+    }
+
+    public async Task<CostItem> RetrieveForecastedCostsAsync(
+        bool includeDebugOutput, 
+        Guid subscriptionId,
+        string resourceId, 
+        MetricType metric,
+        TimeframeType timeFrame, 
+        DateOnly from, 
+        DateOnly to
+    )
+    {
+        string[] filter = new string[] {$"ResourceId={resourceId}"};
+        var costItems = await RetrieveForecastedCostsAsync(
+            includeDebugOutput,
+            subscriptionId,
+            filter,
+            metric,
+            timeFrame,
+            from,
+            to
+        );
+
+        if (costItems.Count() == 0)
+        {
+            // resource has no cost associated
+            return new CostItem(
+                DateOnly.MinValue,
+                0.0,
+                0.0,
+                "USD"
+            );
+        }
+        else
+        {
+            return costItems.ToArray()[0];
+        }
+    }
+
+    private async Task<IEnumerable<CostItem>> RetrieveForecastedCostsAsync(
+        bool includeDebugOutput, 
+        Guid subscriptionId,
+        string[] filter, 
+        MetricType metric,
+        TimeframeType timeFrame, 
+        DateOnly from, 
+        DateOnly to
+    )
+    {
+        var uri = new Uri(
+            $"/subscriptions/{subscriptionId}/providers/Microsoft.CostManagement/forecast?api-version=2021-10-01&$top=5000",
+            UriKind.Relative);
+
+        var payload = new
+        {
+            type = metric.ToString(),
+            timeframe = timeFrame.ToString(),
+            timePeriod = timeFrame == TimeframeType.Custom
+                ? new
+                {
+                    from = from.ToString("yyyy-MM-dd"),
+                    to = to.ToString("yyyy-MM-dd")
+                }
+                : null,
+            dataSet = new
+            {
+                granularity = "Daily",
+                aggregation = new
+                {
+                    totalCost = new
+                    {
+                        name = "Cost",
+                        function = "Sum"
+                    }
+                },
+                filter = GenerateFilters(filter),
+                sorting = new[]
+                {
+                    new
+                    {
+                        direction = "ascending",
+                        name = "UsageDate"
+                    }
+                }
+            }
+        };
+
+        var items = new List<CostItem>();
+
+        try
+        {
+            // Allow this one to fail, as it is not supported for all subscriptions
+            var response = await ExecuteCallToCostApi(includeDebugOutput, payload, uri);
+
+            CostQueryResponse? content = await response.Content.ReadFromJsonAsync<CostQueryResponse>();
+
+            foreach (var row in content.properties.rows)
+            {
+                var date = DateOnly.ParseExact(row[1].ToString(), "yyyyMMdd", CultureInfo.InvariantCulture);
+                var value = double.Parse(row[0].ToString(), CultureInfo.InvariantCulture);
+
+                var currency = row[3].ToString();
+
+                var costItem = new CostItem(date, value, value, currency);
+                items.Add(costItem);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Eat exception, we log anyway with the debug output
+            if (includeDebugOutput)
+            {
+                AnsiConsole.WriteException(ex);
+                AnsiConsole.WriteLine("Ignoring this exception, as it is not supported for all subscriptions.");
+            }
+        }
+
         return items;
     }
 }

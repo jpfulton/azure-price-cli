@@ -77,7 +77,7 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
         }
 
         var resourceIds = await AzCommand.GetAzureResourceIdsAsync(settings.ResourceGroup);
-        var resourceCosts = new List<CostResourceItem>();
+        var resourceCosts = new List<Tuple<CostResourceItem, CostItem>>();
 
         await AnsiConsole.Status()
             .StartAsync("Fetching cost data for resources...", async ctx =>
@@ -90,7 +90,7 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                         AnsiConsole.WriteLine($"Getting cost data for {resourceId}");
                     }
 
-                    var resourceCost = await _costRetriever.RetrieveCostForResource(
+                    var resourceCost = await _costRetriever.RetrieveCostForResourceAsync(
                         settings.Debug,
                         subscriptionId,
                         resourceId,
@@ -98,14 +98,27 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                         settings.ExcludeMeterDetails,
                         settings.Timeframe,
                         settings.From,
-                        settings.To);
+                        settings.To
+                    );
 
-                    resourceCosts.Add(resourceCost);
+                    var forecastCost = await _costRetriever.RetrieveForecastedCostsAsync(
+                        settings.Debug,
+                        subscriptionId,
+                        resourceId,
+                        settings.Metric,
+                        settings.Timeframe,
+                        settings.From,
+                        settings.To
+                    );
+
+                    resourceCosts.Add(new Tuple<CostResourceItem, CostItem>(resourceCost, forecastCost));
 
                     if (settings.Debug)
                     {
                         AnsiConsole.WriteLine($"Cost data for: {resourceId}");
                         AnsiConsole.Write(new JsonText(JsonSerializer.Serialize(resourceCost)));
+                        AnsiConsole.WriteLine($"Forecast data for: {resourceId}");
+                        AnsiConsole.Write(new JsonText(JsonSerializer.Serialize(forecastCost)));
                     }
                 }
             });
@@ -117,23 +130,28 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
             .AddColumn("Type")
             .AddColumn("Service")
             .AddColumn("Tier")
-            .AddColumn("Cost USD");
+            .AddColumn("Cost USD")
+            .AddColumn("Forecast USD");
 
         var totalCost = 0.0;
+        var forecastCost = 0.0;
         foreach (var cost in resourceCosts)
         {
             table.AddRow(
-                new Markup(cost.ResourceId.Split("/").Last().EscapeMarkup()),
-                new Markup(cost.ResourceType.EscapeMarkup()),
-                new Markup(cost.ServiceName.EscapeMarkup()),
-                new Markup(cost.ServiceTier.EscapeMarkup()),
-                new Markup(Math.Round(cost.CostUSD, 2).ToString().EscapeMarkup())
+                new Markup(cost.Item1.ResourceId.Split("/").Last().EscapeMarkup()),
+                new Markup(cost.Item1.ResourceType.EscapeMarkup()),
+                new Markup(cost.Item1.ServiceName.EscapeMarkup()),
+                new Markup(cost.Item1.ServiceTier.EscapeMarkup()),
+                new Markup(Math.Round(cost.Item1.CostUSD, 2).ToString().EscapeMarkup()),
+                new Markup(Math.Round(cost.Item2.CostUsd, 2).ToString().EscapeMarkup())
             );
 
-            totalCost += cost.CostUSD;
+            totalCost += cost.Item1.CostUSD;
+            forecastCost += cost.Item2.CostUsd;
         }
 
         table.AddRow(
+            new Markup("---".EscapeMarkup()),
             new Markup("---".EscapeMarkup()),
             new Markup("---".EscapeMarkup()),
             new Markup("---".EscapeMarkup()),
@@ -146,7 +164,8 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
             new Markup(string.Empty.EscapeMarkup()),
             new Markup(string.Empty.EscapeMarkup()),
             new Markup(string.Empty.EscapeMarkup()),
-            new Markup(Math.Round(totalCost, 2).ToString().EscapeMarkup())
+            new Markup(Math.Round(totalCost, 2).ToString().EscapeMarkup()),
+            new Markup(Math.Round(forecastCost, 2).ToString().EscapeMarkup())
         );
 
         AnsiConsole.WriteLine();
