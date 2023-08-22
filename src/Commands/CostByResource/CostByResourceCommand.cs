@@ -39,23 +39,9 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
 
     public override ValidationResult Validate(CommandContext context, CostByResourceSettings settings)
     {
-        // Validate if the timeframe is set to Custom, then the from and to dates must be specified and the from date must be before the to date
-        if (settings.Timeframe == TimeframeType.Custom)
+        if (string.IsNullOrEmpty(settings.ResourceGroup))
         {
-            if (settings.From == null)
-            {
-                return ValidationResult.Error("The from date must be specified when the timeframe is set to Custom.");
-            }
-
-            if (settings.To == null)
-            {
-                return ValidationResult.Error("The to date must be specified when the timeframe is set to Custom.");
-            }
-
-            if (settings.From > settings.To)
-            {
-                return ValidationResult.Error("The from date must be before the to date.");
-            }
+            return ValidationResult.Error("Resource group option must be supplied.");
         }
 
         return ValidationResult.Success();
@@ -126,9 +112,7 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                         subscriptionId,
                         resourceId,
                         settings.Metric,
-                        settings.Timeframe,
-                        settings.From,
-                        settings.To
+                        settings.Timeframe
                     );
 
                     // pull display values from first item
@@ -170,9 +154,7 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                         subscriptionId,
                         resourceId,
                         settings.Metric,
-                        settings.Timeframe,
-                        settings.From,
-                        settings.To
+                        settings.Timeframe
                     );
 
                     resourceCosts[resourceId].ForecastCost = forecastCost;

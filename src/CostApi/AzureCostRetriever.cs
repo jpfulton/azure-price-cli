@@ -148,9 +148,7 @@ public class AzureCostRetriever : ICostRetriever
         Guid subscriptionId,
         string resourceId, 
         MetricType metric, 
-        TimeframeType timeFrame, 
-        DateOnly from,
-        DateOnly to
+        TimeframeType timeFrame
     )
     {
         string[] filter = new string[] {$"ResourceId={resourceId}"};
@@ -160,9 +158,7 @@ public class AzureCostRetriever : ICostRetriever
             filter,
             metric,
             true, // exclude meter details
-            timeFrame,
-            from,
-            to
+            timeFrame
         );
 
         if (costItems.Count() == 0)
@@ -198,9 +194,7 @@ public class AzureCostRetriever : ICostRetriever
         string[] filter, 
         MetricType metric, 
         bool excludeMeterDetails, 
-        TimeframeType timeFrame, 
-        DateOnly from,
-        DateOnly to)
+        TimeframeType timeFrame)
     {
         var uri = new Uri(
             $"/subscriptions/{subscriptionId}/providers/Microsoft.CostManagement/query?api-version=2021-10-01&$top=5000",
@@ -297,13 +291,6 @@ public class AzureCostRetriever : ICostRetriever
         {
             type = metric.ToString(),
             timeframe = timeFrame.ToString(),
-            timePeriod = timeFrame == TimeframeType.Custom
-                ? new
-                {
-                    from = from.ToString("yyyy-MM-dd"),
-                    to = to.ToString("yyyy-MM-dd")
-                }
-                : null,
             dataSet = new
             {
                 granularity = "None",
@@ -385,8 +372,12 @@ public class AzureCostRetriever : ICostRetriever
 
         if (excludeMeterDetails)
         {
-            // As we do not care about the meter details, we still have the possibility of resources with the same, but having multiple locations like Intercontinental, Unknown and Unassigned
-            // We need to aggregate these resources together and show the total cost for the resource, the resource locations need to be combined as well. So it can become West Europe, Intercontinental
+            // As we do not care about the meter details, 
+            // we still have the possibility of resources with the same, 
+            // but having multiple locations like Intercontinental, Unknown and Unassigned
+            // We need to aggregate these resources together and show the total cost for the resource, 
+            // the resource locations need to be combined as well. 
+            // So it can become West Europe, Intercontinental.
             
             var aggregatedItems = new List<ResourceCostItem>();
             var groupedItems = items.GroupBy(x => x.ResourceId);
@@ -406,9 +397,7 @@ public class AzureCostRetriever : ICostRetriever
         Guid subscriptionId,
         string resourceId, 
         MetricType metric,
-        TimeframeType timeFrame, 
-        DateOnly from, 
-        DateOnly to
+        TimeframeType timeFrame
     )
     {
         string[] filter = new string[] {$"ResourceId={resourceId}"};
@@ -417,9 +406,7 @@ public class AzureCostRetriever : ICostRetriever
             subscriptionId,
             filter,
             metric,
-            timeFrame,
-            from,
-            to
+            timeFrame
         );
 
         if (costItems.Count() == 0)
@@ -439,9 +426,7 @@ public class AzureCostRetriever : ICostRetriever
         Guid subscriptionId,
         string[] filter, 
         MetricType metric,
-        TimeframeType timeFrame, 
-        DateOnly from, 
-        DateOnly to
+        TimeframeType timeFrame
     )
     {
         var uri = new Uri(
@@ -452,13 +437,6 @@ public class AzureCostRetriever : ICostRetriever
         {
             type = metric.ToString(),
             timeframe = timeFrame.ToString(),
-            timePeriod = timeFrame == TimeframeType.Custom
-                ? new
-                {
-                    from = from.ToString("yyyy-MM-dd"),
-                    to = to.ToString("yyyy-MM-dd")
-                }
-                : null,
             dataSet = new
             {
                 granularity = "Daily",

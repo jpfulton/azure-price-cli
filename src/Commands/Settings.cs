@@ -27,8 +27,7 @@ public enum MetricType
 
 public enum TimeframeType
 {
-    BillingMonthToDate,
-    Custom,	
+    BillingMonthToDate,	
     MonthToDate,	
     TheLastBillingMonth,	
     TheLastMonth,

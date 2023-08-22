@@ -10,9 +10,7 @@ public interface ICostRetriever
         Guid subscriptionId,
         string resourceId,
         MetricType metric,
-        TimeframeType timeFrame,
-        DateOnly from,
-        DateOnly to
+        TimeframeType timeFrame
     );
 
   public Task<double> RetrieveForecastedCostsAsync(
@@ -20,8 +18,6 @@ public interface ICostRetriever
         Guid subscriptionId,
         string resourceId,
         MetricType metric,
-        TimeframeType timeFrame,
-        DateOnly from,
-        DateOnly to
+        TimeframeType timeFrame
     );
 }
