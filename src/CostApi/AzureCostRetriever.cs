@@ -197,7 +197,7 @@ public class AzureCostRetriever : ICostRetriever
         TimeframeType timeFrame)
     {
         var uri = new Uri(
-            $"/subscriptions/{subscriptionId}/providers/Microsoft.CostManagement/query?api-version=2021-10-01&$top=5000",
+            $"/subscriptions/{subscriptionId}/providers/Microsoft.CostManagement/query?api-version=2023-03-01&$top=5000",
             UriKind.Relative);
 
         object grouping;
@@ -430,7 +430,7 @@ public class AzureCostRetriever : ICostRetriever
     )
     {
         var uri = new Uri(
-            $"/subscriptions/{subscriptionId}/providers/Microsoft.CostManagement/forecast?api-version=2021-10-01&$top=5000",
+            $"/subscriptions/{subscriptionId}/providers/Microsoft.CostManagement/forecast?api-version=2023-03-01&$top=5000",
             UriKind.Relative);
 
         var payload = new
