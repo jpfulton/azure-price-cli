@@ -9,11 +9,23 @@ using Spectre.Console.Json;
 
 namespace AzurePriceCli.Commands.CostByResource;
 
-public record ResourceAndCosts(
-    Resource Resource,
-    double CurrentCost,
-    double ForecastCost
-);
+public class ResourceAndCosts
+{
+    public Resource Resource { get; set; }
+    public double CurrentCost { get; set;}
+    public double ForecastCost { get; set; }
+
+    public ResourceAndCosts(
+        Resource resource,
+        double currentCost,
+        double forecastCost
+    )
+    {
+        Resource = resource;
+        CurrentCost = currentCost;
+        ForecastCost = forecastCost;
+    }
+}
 
 public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
 {
@@ -82,11 +94,19 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
             }
         }
 
-        var resourceIds = await AzCommand.GetAzureResourceIdsAsync(settings.ResourceGroup);
-        var resourceCosts = new List<ResourceAndCosts>();
+        string[] resourceIds = new string[0];
+        //var resourceCosts = new List<ResourceAndCosts>();
+        var resourceCosts = new Dictionary<string, ResourceAndCosts>();
 
         await AnsiConsole.Status()
-            .StartAsync("Fetching data for resources...", async ctx =>
+            .StartAsync("Fetching resource ids for group...", async ctx =>
+            {
+                resourceIds = await AzCommand.GetAzureResourceIdsAsync(settings.ResourceGroup);
+            });
+        
+
+        await AnsiConsole.Status()
+            .StartAsync("Fetching current cost data for resources...", async ctx =>
             {
                 foreach (var resourceId in resourceIds)
                 {
@@ -112,16 +132,32 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                     var resource = new Resource()
                     {
                         Id = resourceId,
-                        Location = item.ResourceLocation,
+                        ArmLocation = item.ResourceLocation,
                         Name = item.GetResourceName(),
                         ServiceName = item.ServiceName,
                         ServiceTier = item.ServiceTier,
-                        Type = item.ResourceType,
+                        ResourceType = item.ResourceType,
                     };
 
                     // sum cost items to account for multiple meters
                     var resourceCost = resourceCostItems.Sum(x => x.Cost);
 
+                    var resourceAndCosts = new ResourceAndCosts(resource, resourceCost, 0.0);
+                    resourceCosts.Add(resourceId, resourceAndCosts);
+
+                    if (settings.Debug)
+                    {
+                        AnsiConsole.WriteLine($"Cost and resource data for: {resourceId}");
+                        AnsiConsole.Write(new JsonText(JsonSerializer.Serialize(resourceAndCosts)));
+                    }
+                }
+            });
+
+        await AnsiConsole.Status()
+            .StartAsync("Fetching forecasted cost data for resources...", async ctx =>
+            {
+                foreach (var resourceId in resourceIds)
+                {
                     var forecastCost = await _costRetriever.RetrieveForecastedCostsAsync(
                         settings.Debug,
                         subscriptionId,
@@ -132,14 +168,7 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                         settings.To
                     );
 
-                    var resourceAndCosts = new ResourceAndCosts(resource, resourceCost, forecastCost);
-                    resourceCosts.Add(resourceAndCosts);
-
-                    if (settings.Debug)
-                    {
-                        AnsiConsole.WriteLine($"Cost and resource data for: {resourceId}");
-                        AnsiConsole.Write(new JsonText(JsonSerializer.Serialize(resourceAndCosts)));
-                    }
+                    resourceCosts[resourceId].ForecastCost = forecastCost;
                 }
             });
 
@@ -155,11 +184,11 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
 
         var totalCost = 0.0;
         var forecastCost = 0.0;
-        foreach (var item in resourceCosts)
+        foreach (var item in resourceCosts.Values)
         {
             table.AddRow(
                 new Markup(item.Resource.Name.EscapeMarkup()),
-                new Markup(item.Resource.Type.EscapeMarkup()),
+                new Markup(item.Resource.ResourceType.EscapeMarkup()),
                 new Markup(item.Resource.ServiceName.EscapeMarkup()),
                 new Markup(item.Resource.ServiceTier.EscapeMarkup()),
                 new Markup(FormatDouble(item.CurrentCost).EscapeMarkup()),

@@ -138,7 +138,7 @@ public static class AzCommand
                 if (root.TryGetProperty("type", out JsonElement typeElement))
                 {
                     string value = typeElement.GetString();
-                    resource.Type = value;
+                    resource.ResourceType = value;
                 }
                 else
                 {
@@ -148,7 +148,7 @@ public static class AzCommand
                 if (root.TryGetProperty("location", out JsonElement locationElement))
                 {
                     string value = locationElement.GetString();
-                    resource.Location = value;
+                    resource.ArmLocation = value;
                 }
                 else
                 {
@@ -172,7 +172,7 @@ public static class AzCommand
                         if (skuElement.TryGetProperty("name", out JsonElement skuNameElement))
                         {
                             string value = skuNameElement.GetString();
-                            resource.SkuName = value;
+                            resource.ArmSkuName = value;
                         }
                         else
                         {
