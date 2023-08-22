@@ -107,7 +107,7 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                 resourceIds = await AzCommand.GetAzureResourceIdsAsync(settings.ResourceGroup);
             });
         timer.Stop();
-        AnsiConsole.WriteLine($"Resource ids fetched in {timer.Elapsed.Seconds}s.");
+        AnsiConsole.WriteLine($"Resource ids fetched in {timer.Elapsed.TotalSeconds}s.");
 
         timer.Restart();
         await AnsiConsole.Status()
@@ -126,7 +126,6 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                         subscriptionId,
                         resourceId,
                         settings.Metric,
-                        settings.ExcludeMeterDetails,
                         settings.Timeframe,
                         settings.From,
                         settings.To
@@ -158,7 +157,7 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                 }
             });
         timer.Stop();
-        AnsiConsole.WriteLine($"Resource cost data fetched in {timer.Elapsed.Seconds}s.");
+        AnsiConsole.WriteLine($"Resource cost data fetched in {timer.Elapsed.TotalSeconds}s.");
 
         timer.Restart();
         await AnsiConsole.Status()
@@ -180,7 +179,7 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                 }
             });
         timer.Stop();
-        AnsiConsole.WriteLine($"Resource forecasted cost fetched in {timer.Elapsed.Seconds}s.");
+        AnsiConsole.WriteLine($"Resource forecasted cost fetched in {timer.Elapsed.TotalSeconds}s.");
 
         var table = new Table()
             .RoundedBorder()

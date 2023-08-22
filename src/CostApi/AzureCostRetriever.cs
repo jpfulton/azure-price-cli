@@ -148,7 +148,6 @@ public class AzureCostRetriever : ICostRetriever
         Guid subscriptionId,
         string resourceId, 
         MetricType metric, 
-        bool excludeMeterDetails, 
         TimeframeType timeFrame, 
         DateOnly from,
         DateOnly to
@@ -160,7 +159,7 @@ public class AzureCostRetriever : ICostRetriever
             subscriptionId,
             filter,
             metric,
-            excludeMeterDetails,
+            true, // exclude meter details
             timeFrame,
             from,
             to

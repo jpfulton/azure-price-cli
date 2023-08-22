@@ -10,7 +10,6 @@ public interface ICostRetriever
         Guid subscriptionId,
         string resourceId,
         MetricType metric,
-        bool excludeMeterDetails,
         TimeframeType timeFrame,
         DateOnly from,
         DateOnly to
