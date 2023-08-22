@@ -116,16 +116,24 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                     );
 
                     // pull display values from first item
-                    var item = resourceCostItems.First();
+                    var firstItem = resourceCostItems.First();
                     var resource = new Resource()
                     {
                         Id = resourceId,
-                        ArmLocation = item.ResourceLocation,
-                        Name = item.GetResourceName(),
-                        ServiceName = item.ServiceName,
-                        ServiceTier = item.ServiceTier,
-                        ResourceType = item.ResourceType,
+                        Name = firstItem.GetResourceName(),
+                        ResourceType = firstItem.ResourceType,
                     };
+                    foreach (var item in resourceCostItems)
+                    {
+                        var meter = new Meter(
+                            item.ResourceLocation,
+                            item.ServiceName,
+                            item.ServiceTier,
+                            item.Meter,
+                            item.Cost
+                        );
+                        resource.Meters.Add(meter);
+                    }
 
                     // sum cost items to account for multiple meters
                     var resourceCost = resourceCostItems.Sum(x => x.Cost);
@@ -170,8 +178,9 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
             .AddColumn("Type")
             .AddColumn("Service")
             .AddColumn("Tier")
-            .AddColumn("Current")
-            .AddColumn("Forecast");
+            .AddColumn("Meter")
+            .AddColumn(new TableColumn("Current").RightAligned())
+            .AddColumn(new TableColumn("Forecast").RightAligned());
 
         var totalCost = 0.0;
         var forecastCost = 0.0;
@@ -180,17 +189,32 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
             table.AddRow(
                 new Markup(item.Resource.Name.EscapeMarkup()),
                 new Markup(item.Resource.ResourceType.EscapeMarkup()),
-                new Markup(item.Resource.ServiceName.EscapeMarkup()),
-                new Markup(item.Resource.ServiceTier.EscapeMarkup()),
-                new Markup(FormatDouble(item.CurrentCost).EscapeMarkup()),
-                new Markup(FormatDouble(item.CurrentCost + item.ForecastCost).EscapeMarkup())
+                new Markup(string.Empty.EscapeMarkup()),
+                new Markup(string.Empty.EscapeMarkup()),
+                new Markup(string.Empty.EscapeMarkup()),
+                new Markup($"[bold blue]{FormatDouble(item.CurrentCost)}[/]"),
+                new Markup($"[bold blue]{FormatDouble(item.CurrentCost + item.ForecastCost)}[/]")
             );
+
+            foreach (var meter in item.Resource.Meters)
+            {
+                table.AddRow(
+                    new Markup(string.Empty.EscapeMarkup()),
+                    new Markup(string.Empty.EscapeMarkup()),
+                    new Markup(meter.ServiceName.EscapeMarkup()),
+                    new Markup(meter.ServiceTier.EscapeMarkup()),
+                    new Markup(meter.MeterName.EscapeMarkup()),
+                    new Markup($"[italic dim]{FormatDouble(meter.Cost)}[/]"),
+                    new Markup(string.Empty.EscapeMarkup())
+                );
+            }
 
             totalCost += item.CurrentCost;
             forecastCost += item.ForecastCost;
         }
 
         table.AddRow(
+            new Markup("---".EscapeMarkup()),
             new Markup("---".EscapeMarkup()),
             new Markup("---".EscapeMarkup()),
             new Markup("---".EscapeMarkup()),
@@ -204,8 +228,9 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
             new Markup(string.Empty.EscapeMarkup()),
             new Markup(string.Empty.EscapeMarkup()),
             new Markup(string.Empty.EscapeMarkup()),
-            new Markup(FormatDouble(totalCost).EscapeMarkup()),
-            new Markup(FormatDouble(totalCost + forecastCost).EscapeMarkup())
+            new Markup(string.Empty.EscapeMarkup()),
+            new Markup($"[bold blue]{FormatDouble(totalCost)}[/]"),
+            new Markup($"[bold blue]{FormatDouble(totalCost + forecastCost)}[/]")
         );
 
         AnsiConsole.WriteLine();

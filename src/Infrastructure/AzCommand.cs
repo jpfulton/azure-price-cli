@@ -148,7 +148,7 @@ public static class AzCommand
                 if (root.TryGetProperty("location", out JsonElement locationElement))
                 {
                     string value = locationElement.GetString();
-                    resource.ArmLocation = value;
+                    resource.PrimaryArmLocation = value;
                 }
                 else
                 {

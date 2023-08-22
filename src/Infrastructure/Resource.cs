@@ -6,13 +6,18 @@ public class Resource
 
   public string ResourceType { get; set; }
 
-  public string ArmLocation { get; set; }
-
   public string Name { get; set; }
 
+  public string PrimaryArmLocation { get; set; }
   public string ArmSkuName { get; set; }
 
-  public string ServiceName { get; set; }
-
-  public string ServiceTier { get; set; }
+  public List<Meter> Meters { get; set; } = new List<Meter>();
 }
+
+public record Meter(
+  string ArmLocation,
+  string ServiceName,
+  string? ServiceTier,
+  string? MeterName,
+  double Cost
+);

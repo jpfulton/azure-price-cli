@@ -157,7 +157,7 @@ public class AzureCostRetriever : ICostRetriever
             subscriptionId,
             filter,
             metric,
-            true, // exclude meter details
+            false, // include meter details
             timeFrame
         );
 
