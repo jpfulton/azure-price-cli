@@ -5,6 +5,7 @@ using System.Text.Json;
 using AzurePriceCli.CostApi;
 using AzurePriceCli.Infrastructure;
 using AzurePriceCli.PriceApi;
+using Microsoft.Identity.Client;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Json;
@@ -91,27 +92,35 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
         var resourceCosts = new Dictionary<string, ResourceAndCosts>();
         var retailPrices = new List<PriceItem>();
 
-        var timer = new Stopwatch();
-
-        timer.Start();
-        await AnsiConsole.Status()
-            .StartAsync("Fetching resource ids for group...", async ctx =>
-            {
-                resourceIds = await AzCommand.GetAzureResourceIdsAsync(settings.ResourceGroup);
-            });
-        timer.Stop();
-        AnsiConsole.WriteLine($"Resource ids fetched in {timer.Elapsed.TotalSeconds}s.");
-
-        timer.Restart();
         await AnsiConsole.Progress()
+            .AutoRefresh(true) // Turn off auto refresh
+            .AutoClear(false)   // Do not remove the task list when done
+            .HideCompleted(false)   // Hide tasks as they are completed
+            .Columns(new ProgressColumn[] 
+            {
+                new SpinnerColumn(),            // Spinner
+                new TaskDescriptionColumn(),    // Task description
+                new ProgressBarColumn(),        // Progress bar
+                new PercentageColumn(),         // Percentage
+                new ElapsedTimeColumn(),        // Elapsed time
+            })
             .StartAsync(async ctx =>
             {
-                var task = ctx.AddTask("[green]Getting current cost data[/]");
+                var resourceIdsTask = ctx.AddTask("[green]Getting resource ids[/]", new ProgressTaskSettings { AutoStart = false });
+                var costTask = ctx.AddTask("[green]Getting current cost data[/]", new ProgressTaskSettings { AutoStart = false });
+                var forecastTask = ctx.AddTask("[green]Getting forecasted cost data for resources[/]", new ProgressTaskSettings { AutoStart = false });
+                var retailTask = ctx.AddTask("[green]Getting retail cost data for resources[/]", new ProgressTaskSettings { AutoStart = false });
+
+                resourceIdsTask.StartTask();
+                resourceIds = await AzCommand.GetAzureResourceIdsAsync(settings.ResourceGroup);
+                resourceIdsTask.Increment(100.0);
+                resourceIdsTask.StopTask();
 
                 var resourceCount = resourceIds.Length;
                 var resourceCounter = 0;
                 var progressIncrement = 100.0 / resourceCount;
 
+                costTask.StartTask();
                 foreach (var resourceId in resourceIds)
                 {
                     resourceCounter += 1;
@@ -162,22 +171,14 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                         AnsiConsole.Write(new JsonText(JsonSerializer.Serialize(resourceAndCosts)));
                     }
 
-                    task.Increment(progressIncrement);
+                    costTask.Increment(progressIncrement);
                 }
-            });
-        timer.Stop();
-        AnsiConsole.WriteLine($"Resource cost data fetched in {timer.Elapsed.TotalSeconds}s.");
+                costTask.StopTask();
+                
+                resourceCounter = 0;
+                progressIncrement = 100.0 / resourceCount;
 
-        timer.Restart();
-        await AnsiConsole.Progress()
-            .StartAsync(async ctx =>
-            {
-                var task = ctx.AddTask("[green]Getting forecasted cost data for resources[/]");
-
-                var resourceCount = resourceIds.Length;
-                var resourceCounter = 0;
-                var progressIncrement = 100.0 / resourceCount;
-
+                forecastTask.StartTask();
                 foreach (var resourceId in resourceIds)
                 {
                     resourceCounter += 1;
@@ -192,16 +193,11 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
 
                     resourceCosts[resourceId].ForecastCost = forecastCost;
 
-                    task.Increment(progressIncrement);
+                    forecastTask.Increment(progressIncrement);
                 }
-            });
-        timer.Stop();
-        AnsiConsole.WriteLine($"Resource forecasted cost fetched in {timer.Elapsed.TotalSeconds}s.");
+                forecastTask.StopTask();
 
-        timer.Restart();
-        await AnsiConsole.Progress()
-            .StartAsync(async ctx =>
-            {
+                retailTask.StartTask();
                 var allMeters = new List<Meter>();
                 foreach (var resource in resourceCosts.Values)
                 {
@@ -217,15 +213,12 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                 })
                 .Select(x => x.First());
 
-                var task = ctx.AddTask("[green]Getting retail cost data for resources[/]");
-
-                var resourceCount = distinctMeters.Count();
-                var resourceCounter = 0;
-                var progressIncrement = 100.0 / resourceCount;
+                var metersCount = distinctMeters.Count();
+                progressIncrement = 100.0 / metersCount;
 
                 foreach (var meter in distinctMeters)
                 {
-                    resourceCounter += 1;
+                    metersCount += 1;
 
                     var priceItems = await _priceRetriever.GetPriceItemAsync(
                         false,
@@ -236,11 +229,10 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
 
                     retailPrices.AddRange(priceItems);
 
-                    task.Increment(progressIncrement);
+                    retailTask.Increment(progressIncrement);
                 }
+                retailTask.StopTask();
             });
-        timer.Stop();
-        AnsiConsole.WriteLine($"Resource retail price data fetched in {timer.Elapsed.TotalSeconds}s.");
 
         var table = new Table()
             .RoundedBorder()
