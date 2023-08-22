@@ -1,7 +1,7 @@
 using System.Net;
 using Polly;
 
-namespace AzurePriceCli.PriceApi;
+namespace AzurePriceCli.Infrastructure;
 
 public static class PollyPolicyExtensions
 {
