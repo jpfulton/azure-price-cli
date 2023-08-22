@@ -80,10 +80,16 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
         var resourceCosts = new List<CostResourceItem>();
 
         await AnsiConsole.Status()
-            .StartAsync("Fetching cost data for resource...", async ctx =>
+            .StartAsync("Fetching cost data for resources...", async ctx =>
             {
                 foreach (var resourceId in resourceIds)
                 {
+                    if (settings.Debug)
+                    {
+                        AnsiConsole.WriteLine();
+                        AnsiConsole.WriteLine($"Getting cost data for {resourceId}");
+                    }
+
                     var resourceCost = await _costRetriever.RetrieveCostForResource(
                         settings.Debug,
                         subscriptionId,
@@ -109,18 +115,43 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
             .Expand()
             .AddColumn("Name")
             .AddColumn("Type")
+            .AddColumn("Service")
+            .AddColumn("Tier")
             .AddColumn("Cost USD");
 
+        var totalCost = 0.0;
         foreach (var cost in resourceCosts)
         {
             table.AddRow(
                 new Markup(cost.ResourceId.Split("/").Last().EscapeMarkup()),
                 new Markup(cost.ResourceType.EscapeMarkup()),
-                new Markup(cost.CostUSD.ToString().EscapeMarkup())
+                new Markup(cost.ServiceName.EscapeMarkup()),
+                new Markup(cost.ServiceTier.EscapeMarkup()),
+                new Markup(Math.Round(cost.CostUSD, 2).ToString().EscapeMarkup())
             );
+
+            totalCost += cost.CostUSD;
         }
 
+        table.AddRow(
+            new Markup("---".EscapeMarkup()),
+            new Markup("---".EscapeMarkup()),
+            new Markup("---".EscapeMarkup()),
+            new Markup("---".EscapeMarkup()),
+            new Markup("---".EscapeMarkup())
+        );
+
+        table.AddRow(
+            new Markup("Total".EscapeMarkup()),
+            new Markup(string.Empty.EscapeMarkup()),
+            new Markup(string.Empty.EscapeMarkup()),
+            new Markup(string.Empty.EscapeMarkup()),
+            new Markup(Math.Round(totalCost, 2).ToString().EscapeMarkup())
+        );
+
         AnsiConsole.WriteLine();
+        AnsiConsole.WriteLine($"Subscription: {settings.Subscription}");
+        AnsiConsole.WriteLine($"Resource group: {settings.ResourceGroup}");
         AnsiConsole.Write(table);
 
         return 0;

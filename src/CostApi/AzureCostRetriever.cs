@@ -165,7 +165,29 @@ public class AzureCostRetriever : ICostRetriever
             to
         );
 
-        return costItems.ToArray()[0];
+        if (costItems.Count() == 0)
+        {
+            // resource has no cost associated
+            return new CostResourceItem(
+                0.0,
+                0.0,
+                resourceId,
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                new Dictionary<string, string>(),
+                ""
+            );
+        }
+        else
+        {
+            return costItems.ToArray()[0];
+        }
     }
 
     public async Task<IEnumerable<CostResourceItem>> RetrieveCostForResources(
