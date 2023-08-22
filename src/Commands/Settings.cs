@@ -10,10 +10,6 @@ public class Settings : CommandSettings
     [DefaultValue(false)]
     public bool Debug { get; set; }
 
-    [CommandOption("-r|--resource-group")]
-    [Description("Resource group to use.")]
-    public string ResourceGroup { get; set; }
-
     [CommandOption("-s|--subscription")]
     [Description("The subscription id to use. Will try to fetch the active id if not specified.")]
     public Guid Subscription { get; set; }

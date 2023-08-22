@@ -12,10 +12,10 @@
       // If you have changed target frameworks, make sure to update the program path.
       "program": "${workspaceFolder}/src/bin/Debug/net7.0/azure-price-cli.dll",
       "args": [
-        "priceByResource",
+        "costByResource",
         "--debug",
-        "--resource-group",
-        "personal-dns"
+        "--resource-id",
+        "/subscriptions/4913be3f-a345-4652-9bba-767418dd25e3/resourceGroups/personal-network/providers/Microsoft.Network/publicIPAddresses/win-dev-public-ip"
       ],
       "cwd": "${workspaceFolder}/src",
       // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
