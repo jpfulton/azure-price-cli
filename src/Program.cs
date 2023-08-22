@@ -31,6 +31,10 @@ app.Configure(config =>
 {
   config.SetApplicationName("azure-price");
 
+#if DEBUG
+  config.PropagateExceptions();
+#endif
+
   config.AddCommand<CostByResourceCommand>("costByResource")
     .WithDescription("Show cost by resource within a resource group.");
 
