@@ -1,4 +1,5 @@
 
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using AzurePriceCli.CostApi;
@@ -95,16 +96,20 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
         }
 
         string[] resourceIds = new string[0];
-        //var resourceCosts = new List<ResourceAndCosts>();
         var resourceCosts = new Dictionary<string, ResourceAndCosts>();
 
+        var timer = new Stopwatch();
+
+        timer.Start();
         await AnsiConsole.Status()
             .StartAsync("Fetching resource ids for group...", async ctx =>
             {
                 resourceIds = await AzCommand.GetAzureResourceIdsAsync(settings.ResourceGroup);
             });
-        
+        timer.Stop();
+        AnsiConsole.WriteLine($"Resource ids fetched in {timer.Elapsed.Seconds}s.");
 
+        timer.Restart();
         await AnsiConsole.Status()
             .StartAsync("Fetching current cost data for resources...", async ctx =>
             {
@@ -152,7 +157,10 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                     }
                 }
             });
+        timer.Stop();
+        AnsiConsole.WriteLine($"Resource cost data fetched in {timer.Elapsed.Seconds}s.");
 
+        timer.Restart();
         await AnsiConsole.Status()
             .StartAsync("Fetching forecasted cost data for resources...", async ctx =>
             {
@@ -171,6 +179,8 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                     resourceCosts[resourceId].ForecastCost = forecastCost;
                 }
             });
+        timer.Stop();
+        AnsiConsole.WriteLine($"Resource forecasted cost fetched in {timer.Elapsed.Seconds}s.");
 
         var table = new Table()
             .RoundedBorder()
