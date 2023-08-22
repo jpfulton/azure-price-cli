@@ -11,4 +11,8 @@ public class Resource
   public string Name { get; set; }
 
   public string SkuName { get; set; }
+
+  public string ServiceName { get; set; }
+
+  public string ServiceTier { get; set; }
 }

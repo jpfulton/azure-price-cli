@@ -9,6 +9,12 @@ using Spectre.Console.Json;
 
 namespace AzurePriceCli.Commands.CostByResource;
 
+public record ResourceAndCosts(
+    Resource Resource,
+    double CurrentCost,
+    double ForecastCost
+);
+
 public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
 {
     private readonly ICostRetriever _costRetriever;
@@ -77,12 +83,7 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
         }
 
         var resourceIds = await AzCommand.GetAzureResourceIdsAsync(settings.ResourceGroup);
-        var resourceCosts = new List<Tuple<double, double>>();
-
-        string resourceName = string.Empty;
-        string resourceType = string.Empty;
-        string resourceService = string.Empty;
-        string resourceTier = string.Empty;
+        var resourceCosts = new List<ResourceAndCosts>();
 
         await AnsiConsole.Status()
             .StartAsync("Fetching data for resources...", async ctx =>
@@ -108,10 +109,15 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
 
                     // pull display values from first item
                     var item = resourceCostItems.First();
-                    resourceName = item.GetResourceName();
-                    resourceType = item.ResourceType;
-                    resourceService = item.ServiceName;
-                    resourceTier = item.ServiceTier;
+                    var resource = new Resource()
+                    {
+                        Id = resourceId,
+                        Location = item.ResourceLocation,
+                        Name = item.GetResourceName(),
+                        ServiceName = item.ServiceName,
+                        ServiceTier = item.ServiceTier,
+                        Type = item.ResourceType,
+                    };
 
                     // sum cost items to account for multiple meters
                     var resourceCost = resourceCostItems.Sum(x => x.Cost);
@@ -126,14 +132,13 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                         settings.To
                     );
 
-                    resourceCosts.Add(new Tuple<double, double>(resourceCost, forecastCost));
+                    var resourceAndCosts = new ResourceAndCosts(resource, resourceCost, forecastCost);
+                    resourceCosts.Add(resourceAndCosts);
 
                     if (settings.Debug)
                     {
-                        AnsiConsole.WriteLine($"Cost data for: {resourceId}");
-                        AnsiConsole.Write(new JsonText(JsonSerializer.Serialize(resourceCost)));
-                        AnsiConsole.WriteLine($"Forecast data for: {resourceId}");
-                        AnsiConsole.Write(new JsonText(JsonSerializer.Serialize(forecastCost)));
+                        AnsiConsole.WriteLine($"Cost and resource data for: {resourceId}");
+                        AnsiConsole.Write(new JsonText(JsonSerializer.Serialize(resourceAndCosts)));
                     }
                 }
             });
@@ -150,19 +155,19 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
 
         var totalCost = 0.0;
         var forecastCost = 0.0;
-        foreach (var cost in resourceCosts)
+        foreach (var item in resourceCosts)
         {
             table.AddRow(
-                new Markup(resourceName.EscapeMarkup()),
-                new Markup(resourceType.EscapeMarkup()),
-                new Markup(resourceService.EscapeMarkup()),
-                new Markup(resourceTier.EscapeMarkup()),
-                new Markup(FormatDouble(cost.Item1).EscapeMarkup()),
-                new Markup(FormatDouble(cost.Item1 + cost.Item2).EscapeMarkup())
+                new Markup(item.Resource.Name.EscapeMarkup()),
+                new Markup(item.Resource.Type.EscapeMarkup()),
+                new Markup(item.Resource.ServiceName.EscapeMarkup()),
+                new Markup(item.Resource.ServiceTier.EscapeMarkup()),
+                new Markup(FormatDouble(item.CurrentCost).EscapeMarkup()),
+                new Markup(FormatDouble(item.CurrentCost + item.ForecastCost).EscapeMarkup())
             );
 
-            totalCost += cost.Item1;
-            forecastCost += cost.Item2;
+            totalCost += item.CurrentCost;
+            forecastCost += item.ForecastCost;
         }
 
         table.AddRow(
