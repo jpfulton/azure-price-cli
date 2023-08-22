@@ -38,6 +38,8 @@ app.Configure(config =>
   config.AddCommand<CostByResourceCommand>("costByResource")
     .WithDescription("Show cost by resource within a resource group.");
 
+  config.AddExample(new[] { "costByResource", "--resource-group", "personal-network" });
+
   config.AddCommand<PriceByResourceCommand>("priceByResource")
     .WithDescription("Show price by resource within a resource group.");
 
