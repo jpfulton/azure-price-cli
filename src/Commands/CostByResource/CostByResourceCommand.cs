@@ -193,11 +193,11 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
         foreach (var item in resourceCosts.Values)
         {
             table.AddRow(
-                new Markup(item.Resource.Name.EscapeMarkup()),
-                new Markup(item.Resource.ResourceType.EscapeMarkup()),
-                new Markup(string.Empty.EscapeMarkup()),
-                new Markup(string.Empty.EscapeMarkup()),
-                new Markup(string.Empty.EscapeMarkup()),
+                new Markup($"[bold]{item.Resource.Name}[/]"),
+                new Markup($"[bold]{item.Resource.ResourceType}[/]"),
+                new Markup("---".EscapeMarkup()),
+                new Markup("---".EscapeMarkup()),
+                new Markup("---".EscapeMarkup()),
                 new Markup($"[bold blue]{FormatDouble(item.CurrentCost)}[/]"),
                 new Markup($"[bold blue]{FormatDouble(item.CurrentCost + item.ForecastCost)}[/]")
             );
