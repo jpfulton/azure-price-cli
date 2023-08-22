@@ -1,6 +1,6 @@
 namespace AzurePriceCli.CostApi;
 
-public record CostResourceItem(
+public record ResourceCostItem(
     double Cost, 
     double CostUSD, 
     string ResourceId, 
@@ -18,7 +18,7 @@ public record CostResourceItem(
 public static class CostResourceItemExtensions
 {
     // Function to extract the name of the resource from the resource id
-    public static string GetResourceName(this CostResourceItem resource)
+    public static string GetResourceName(this ResourceCostItem resource)
     {
         var parts = resource.ResourceId.Split('/');
         return parts.Last();

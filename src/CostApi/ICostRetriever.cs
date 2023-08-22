@@ -5,7 +5,7 @@ namespace AzurePriceCli.CostApi;
 public interface ICostRetriever
 {
 
-  public Task<IEnumerable<CostResourceItem>> RetrieveCostForResourceAsync(
+  public Task<IEnumerable<ResourceCostItem>> RetrieveCostForResourceAsync(
         bool includeDebugOutput,
         Guid subscriptionId,
         string resourceId,

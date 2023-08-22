@@ -107,10 +107,11 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                     );
 
                     // pull display values from first item
-                    resourceName = resourceCostItems.First().GetResourceName();
-                    resourceType = resourceCostItems.First().ResourceType;
-                    resourceService = resourceCostItems.First().ServiceName;
-                    resourceTier = resourceCostItems.First().ServiceTier;
+                    var item = resourceCostItems.First();
+                    resourceName = item.GetResourceName();
+                    resourceType = item.ResourceType;
+                    resourceService = item.ServiceName;
+                    resourceTier = item.ServiceTier;
 
                     // sum cost items to account for multiple meters
                     var resourceCost = resourceCostItems.Sum(x => x.Cost);

@@ -143,7 +143,7 @@ public class AzureCostRetriever : ICostRetriever
         return response;
     }
 
-    public async Task<IEnumerable<CostResourceItem>> RetrieveCostForResourceAsync(
+    public async Task<IEnumerable<ResourceCostItem>> RetrieveCostForResourceAsync(
         bool includeDebugOutput,
         Guid subscriptionId,
         string resourceId, 
@@ -169,7 +169,7 @@ public class AzureCostRetriever : ICostRetriever
         if (costItems.Count() == 0)
         {
             // resource has no cost associated
-            var item = new CostResourceItem(
+            var item = new ResourceCostItem(
                 0.0,
                 0.0,
                 resourceId,
@@ -185,7 +185,7 @@ public class AzureCostRetriever : ICostRetriever
                 ""
             );
 
-            return new List<CostResourceItem>() { item };
+            return new List<ResourceCostItem>() { item };
         }
         else
         {
@@ -193,7 +193,7 @@ public class AzureCostRetriever : ICostRetriever
         }
     }
 
-    private async Task<IEnumerable<CostResourceItem>> RetrieveCostForResourcesAsync(
+    private async Task<IEnumerable<ResourceCostItem>> RetrieveCostForResourcesAsync(
         bool includeDebugOutput,
         Guid subscriptionId, 
         string[] filter, 
@@ -330,7 +330,7 @@ public class AzureCostRetriever : ICostRetriever
 
         CostQueryResponse? content = await response.Content.ReadFromJsonAsync<CostQueryResponse>();
 
-        var items = new List<CostResourceItem>();
+        var items = new List<ResourceCostItem>();
         foreach (JsonElement row in content.properties.rows)
         {
             double cost = row[0].GetDouble();
@@ -366,7 +366,7 @@ public class AzureCostRetriever : ICostRetriever
             int currencyColumn = excludeMeterDetails?9:12;
             string currency = row[currencyColumn].GetString();
 
-            CostResourceItem item = new CostResourceItem(
+            ResourceCostItem item = new ResourceCostItem(
                 cost, 
                 costUSD, 
                 resourceId, 
@@ -389,11 +389,11 @@ public class AzureCostRetriever : ICostRetriever
             // As we do not care about the meter details, we still have the possibility of resources with the same, but having multiple locations like Intercontinental, Unknown and Unassigned
             // We need to aggregate these resources together and show the total cost for the resource, the resource locations need to be combined as well. So it can become West Europe, Intercontinental
             
-            var aggregatedItems = new List<CostResourceItem>();
+            var aggregatedItems = new List<ResourceCostItem>();
             var groupedItems = items.GroupBy(x => x.ResourceId);
             foreach (var groupedItem in groupedItems)
             {
-                var aggregatedItem = new CostResourceItem(groupedItem.Sum(x => x.Cost), groupedItem.Sum(x => x.CostUSD), groupedItem.Key, groupedItem.First().ResourceType, string.Join(", ", groupedItem.Select(x => x.ResourceLocation)), groupedItem.First().ChargeType, groupedItem.First().ResourceGroupName, groupedItem.First().PublisherType, null, null, null, groupedItem.First().Tags, groupedItem.First().Currency);
+                var aggregatedItem = new ResourceCostItem(groupedItem.Sum(x => x.Cost), groupedItem.Sum(x => x.CostUSD), groupedItem.Key, groupedItem.First().ResourceType, string.Join(", ", groupedItem.Select(x => x.ResourceLocation)), groupedItem.First().ChargeType, groupedItem.First().ResourceGroupName, groupedItem.First().PublisherType, null, null, null, groupedItem.First().Tags, groupedItem.First().Currency);
                 aggregatedItems.Add(aggregatedItem);
             }
             
@@ -435,7 +435,7 @@ public class AzureCostRetriever : ICostRetriever
         }
     }
 
-    private async Task<IEnumerable<CostItem>> RetrieveForecastedCostsAsync(
+    private async Task<IEnumerable<ForecastCostItem>> RetrieveForecastedCostsAsync(
         bool includeDebugOutput, 
         Guid subscriptionId,
         string[] filter, 
@@ -483,7 +483,7 @@ public class AzureCostRetriever : ICostRetriever
             }
         };
 
-        var items = new List<CostItem>();
+        var items = new List<ForecastCostItem>();
 
         try
         {
@@ -499,7 +499,7 @@ public class AzureCostRetriever : ICostRetriever
 
                 var currency = row[3].ToString();
 
-                var costItem = new CostItem(date, value, value, currency);
+                var costItem = new ForecastCostItem(date, value, value, currency);
                 items.Add(costItem);
             }
         }
