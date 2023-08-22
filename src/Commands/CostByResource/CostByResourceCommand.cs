@@ -334,8 +334,8 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
     {
         var value = priceItems.Where(x =>
             (meter.ArmLocation.Equals("Unknown") || x.ArmRegionName.Equals(meter.ArmLocation)) &&
-            x.ServiceName.Contains(meter.ServiceName) &&
-            x.MeterName.Contains(meter.MeterName)
+            x.ServiceName.Equals(meter.ServiceName) &&
+            x.MeterName.Equals(meter.MeterName)
         )
         .FirstOrDefault();
 

@@ -32,8 +32,8 @@ public class AzurePriceRetriever : IPriceRetriever
 
         var sb = new StringBuilder();
         sb.Append("$filter=");
-        // sb.Append($"serviceName eq '{serviceName}'");
-        // sb.Append($"and meterName eq '{meterName}'");
+        //sb.Append($"serviceName eq '{serviceName}'");
+        //sb.Append($" and meterName eq '{meterName}'");
         sb.Append($"contains(serviceName, '{serviceName}')");
         sb.Append($" and contains(meterName, '{meterName}')");
         if (!location.Equals("Unknown"))
