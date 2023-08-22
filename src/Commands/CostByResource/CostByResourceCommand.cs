@@ -103,11 +103,19 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
         AnsiConsole.WriteLine($"Resource ids fetched in {timer.Elapsed.TotalSeconds}s.");
 
         timer.Restart();
-        await AnsiConsole.Status()
-            .StartAsync("Fetching current cost data for resources...", async ctx =>
+        await AnsiConsole.Progress()
+            .StartAsync(async ctx =>
             {
+                var task = ctx.AddTask("[green]Getting current cost data[/]");
+
+                var resourceCount = resourceIds.Length;
+                var resourceCounter = 0;
+                var progressIncrement = 100.0 / resourceCount;
+
                 foreach (var resourceId in resourceIds)
                 {
+                    resourceCounter += 1;
+
                     if (settings.Debug)
                     {
                         AnsiConsole.WriteLine();
@@ -153,17 +161,27 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                         AnsiConsole.WriteLine($"Cost and resource data for: {resourceId}");
                         AnsiConsole.Write(new JsonText(JsonSerializer.Serialize(resourceAndCosts)));
                     }
+
+                    task.Increment(progressIncrement);
                 }
             });
         timer.Stop();
         AnsiConsole.WriteLine($"Resource cost data fetched in {timer.Elapsed.TotalSeconds}s.");
 
         timer.Restart();
-        await AnsiConsole.Status()
-            .StartAsync("Fetching forecasted cost data for resources...", async ctx =>
+        await AnsiConsole.Progress()
+            .StartAsync(async ctx =>
             {
+                var task = ctx.AddTask("[green]Getting forecasted cost data for resources[/]");
+
+                var resourceCount = resourceIds.Length;
+                var resourceCounter = 0;
+                var progressIncrement = 100.0 / resourceCount;
+
                 foreach (var resourceId in resourceIds)
                 {
+                    resourceCounter += 1;
+
                     var forecastCost = await _costRetriever.RetrieveForecastedCostsAsync(
                         settings.Debug,
                         subscriptionId,
@@ -173,14 +191,16 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                     );
 
                     resourceCosts[resourceId].ForecastCost = forecastCost;
+
+                    task.Increment(progressIncrement);
                 }
             });
         timer.Stop();
         AnsiConsole.WriteLine($"Resource forecasted cost fetched in {timer.Elapsed.TotalSeconds}s.");
 
         timer.Restart();
-        await AnsiConsole.Status()
-            .StartAsync("Fetching retail price data for resources...", async ctx =>
+        await AnsiConsole.Progress()
+            .StartAsync(async ctx =>
             {
                 var allMeters = new List<Meter>();
                 foreach (var resource in resourceCosts.Values)
@@ -197,8 +217,16 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                 })
                 .Select(x => x.First());
 
+                var task = ctx.AddTask("[green]Getting retail cost data for resources[/]");
+
+                var resourceCount = distinctMeters.Count();
+                var resourceCounter = 0;
+                var progressIncrement = 100.0 / resourceCount;
+
                 foreach (var meter in distinctMeters)
                 {
+                    resourceCounter += 1;
+
                     var priceItems = await _priceRetriever.GetPriceItemAsync(
                         false,
                         meter.ArmLocation,
@@ -207,6 +235,8 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                     );
 
                     retailPrices.AddRange(priceItems);
+
+                    task.Increment(progressIncrement);
                 }
             });
         timer.Stop();
