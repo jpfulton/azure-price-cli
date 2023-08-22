@@ -232,6 +232,7 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
                     retailTask.Increment(progressIncrement);
                 }
                 retailTask.StopTask();
+                ctx.Refresh();
             });
 
         var table = new Table()
@@ -333,8 +334,8 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
     {
         var value = priceItems.Where(x =>
             (meter.ArmLocation.Equals("Unknown") || x.ArmRegionName.Equals(meter.ArmLocation)) &&
-            x.ServiceName.Equals(meter.ServiceName) &&
-            x.MeterName.Equals(meter.MeterName)
+            x.ServiceName.Contains(meter.ServiceName) &&
+            x.MeterName.Contains(meter.MeterName)
         )
         .FirstOrDefault();
 
