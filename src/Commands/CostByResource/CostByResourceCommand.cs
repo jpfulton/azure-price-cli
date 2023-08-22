@@ -1,4 +1,5 @@
 
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using AzurePriceCli.CostApi;
 using AzurePriceCli.Infrastructure;
@@ -75,25 +76,52 @@ public class CostByResourceCommand : AsyncCommand<CostByResourceSettings>
             }
         }
 
-        // Fetch the costs from the Azure Cost Management API
-        CostResourceItem resource = null;
+        var resourceIds = await AzCommand.GetAzureResourceIdsAsync(settings.ResourceGroup);
+        var resourceCosts = new List<CostResourceItem>();
 
         await AnsiConsole.Status()
             .StartAsync("Fetching cost data for resource...", async ctx =>
             {
-                resource = await _costRetriever.RetrieveCostForResource(
-                    settings.Debug,
-                    subscriptionId,
-                    settings.ResourceId,
-                    settings.Metric,
-                    settings.ExcludeMeterDetails,
-                    settings.Timeframe,
-                    settings.From,
-                    settings.To);
+                foreach (var resourceId in resourceIds)
+                {
+                    var resourceCost = await _costRetriever.RetrieveCostForResource(
+                        settings.Debug,
+                        subscriptionId,
+                        resourceId,
+                        settings.Metric,
+                        settings.ExcludeMeterDetails,
+                        settings.Timeframe,
+                        settings.From,
+                        settings.To);
+
+                    resourceCosts.Add(resourceCost);
+
+                    if (settings.Debug)
+                    {
+                        AnsiConsole.WriteLine($"Cost data for: {resourceId}");
+                        AnsiConsole.Write(new JsonText(JsonSerializer.Serialize(resourceCost)));
+                    }
+                }
             });
 
-        // Write the output
-        AnsiConsole.Write(new JsonText(JsonSerializer.Serialize(resource)));
+        var table = new Table()
+            .RoundedBorder()
+            .Expand()
+            .AddColumn("Name")
+            .AddColumn("Type")
+            .AddColumn("Cost USD");
+
+        foreach (var cost in resourceCosts)
+        {
+            table.AddRow(
+                new Markup(cost.ResourceId.Split("/").Last().EscapeMarkup()),
+                new Markup(cost.ResourceType.EscapeMarkup()),
+                new Markup(cost.CostUSD.ToString().EscapeMarkup())
+            );
+        }
+
+        AnsiConsole.WriteLine();
+        AnsiConsole.Write(table);
 
         return 0;
     }

@@ -13,6 +13,10 @@ public class Settings : CommandSettings
     [CommandOption("-s|--subscription")]
     [Description("The subscription id to use. Will try to fetch the active id if not specified.")]
     public Guid Subscription { get; set; }
+
+    [CommandOption("-r|--resource-group")]
+    [Description("Resource group to use.")]
+    public string ResourceGroup { get; set; }
 }
 
 public enum MetricType
