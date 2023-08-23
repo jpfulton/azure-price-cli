@@ -1,5 +1,3 @@
-
-
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -151,11 +149,11 @@ public class AzureCostRetriever : ICostRetriever
         TimeframeType timeFrame
     )
     {
-        string[] filter = new string[] {$"ResourceId={resourceId}"};
+        string[] filters = new string[] { $"ResourceId={resourceId}" };
         var costItems = await RetrieveCostForResourcesAsync(
             includeDebugOutput,
             subscriptionId,
-            filter,
+            filters,
             metric,
             false, // include meter details
             timeFrame
@@ -312,6 +310,14 @@ public class AzureCostRetriever : ICostRetriever
                 grouping = grouping,
             }
         };
+
+        if (includeDebugOutput)
+        {
+            var jsonPayload = JsonSerializer.Serialize(payload, new JsonSerializerOptions() { WriteIndented = true });
+            AnsiConsole.Write(new JsonText(jsonPayload));
+            AnsiConsole.WriteLine();
+        }
+
         var response = await ExecuteCallToCostApi(includeDebugOutput, payload, uri);
 
         CostQueryResponse? content = await response.Content.ReadFromJsonAsync<CostQueryResponse>();

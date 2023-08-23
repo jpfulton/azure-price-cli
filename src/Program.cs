@@ -1,5 +1,4 @@
 ﻿using AzurePriceCli.Commands.CostByResource;
-using AzurePriceCli.Commands.PriceByResource;
 using AzurePriceCli.CostApi;
 using AzurePriceCli.Infrastructure;
 using AzurePriceCli.PriceApi;
@@ -41,9 +40,7 @@ app.Configure(config =>
     .WithDescription("Show cost by resource within a resource group.");
 
   config.AddExample(new[] { "costByResource", "--resource-group", "personal-network" });
-
-  config.AddCommand<PriceByResourceCommand>("priceByResource")
-    .WithDescription("Show price by resource within a resource group.");
+  config.AddExample(new[] { "costByResource", "-s", "00000000-0000-0000-0000-000000000000", "--resource-group", "personal-network" });
 
   config.ValidateExamples();
 });
