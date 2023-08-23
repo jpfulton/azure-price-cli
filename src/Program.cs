@@ -26,8 +26,6 @@ var registrar = new TypeRegistrar(services);
 
 var app = new CommandApp(registrar);
 
-app.SetDefaultCommand<CostByResourceCommand>();
-
 app.Configure(config =>
 {
   config.SetApplicationName("azure-price");
